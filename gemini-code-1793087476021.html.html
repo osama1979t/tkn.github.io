@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة التحدي: جمل الإدخال والإخراج في بايثون</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .code-font {
+            font-family: 'Courier New', Courier, monospace;
+            direction: ltr;
+            text-align: left;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 min-h-screen">
+
+    <div id="app" class="w-full max-w-2xl">
+        <!-- 1. شاشة البداية / إدخال الاسم -->
+        <div id="welcome-screen" class="glass-card rounded-2xl p-8 text-center border-t-4 border-cyan-500">
+            <div class="inline-block bg-cyan-500/10 text-cyan-400 p-4 rounded-full mb-4">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l-4 4M6 16l-4-4 4-4"></path></svg>
+            </div>
+            <h1 class="text-3xl font-black mb-2 text-white">اختبار جمل الإدخال والإخراج</h1>
+            <p class="text-slate-400 mb-6">مادة الحاسوب - لغة بايثون (Python)</p>
+            
+            <form id="start-form" onsubmit="startGame(event)" class="space-y-4">
+                <div>
+                    <label for="student-name" class="block text-right text-sm font-medium mb-2 text-slate-300">أدخل اسم الطالب (باللغة العربية):</label>
+                    <input type="text" id="student-name" required pattern="^[\u0600-\u06FF\s]+$" title="الرجاء كتابة الاسم باللغة العربية فقط" placeholder="مثال: علي محمد" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-700 text-white focus:outline-none focus:border-cyan-500 transition-colors text-right">
+                </div>
+                <button type="submit" class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 font-bold rounded-xl text-lg shadow-lg shadow-cyan-500/20 transition-all transform active:scale-95">
+                    ابدأ التحدي الآن 🚀
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. شاشة الأسئلة -->
+        <div id="quiz-screen" class="hidden space-y-4">
+            <!-- شريط معلومات الطالب والمؤقت -->
+            <div class="glass-card rounded-xl p-4 flex justify-between items-center">
+                <div>
+                    <span class="text-xs text-slate-400 block">الطالب:</span>
+                    <span id="display-name" class="font-bold text-cyan-400"></span>
+                </div>
+                <div class="text-center">
+                    <span class="text-xs text-slate-400 block">السؤال</span>
+                    <span id="question-number" class="font-bold text-white">1/4</span>
+                </div>
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <div class="relative w-12 h-12 flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="4" class="text-slate-700" fill="transparent"/>
+                            <circle id="timer-circle" cx="24" cy="24" r="20" stroke="currentColor" stroke-width="4" stroke-dasharray="125.6" stroke-dashoffset="0" class="text-cyan-400 transition-all duration-1000" fill="transparent"/>
+                        </svg>
+                        <span id="timer-text" class="absolute text-sm font-bold">30</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- بطاقة السؤال -->
+            <div class="glass-card rounded-2xl p-6 relative overflow-hidden">
+                <div id="question-text" class="text-lg font-bold mb-6 leading-relaxed text-white"></div>
+                <div id="code-block" class="hidden mb-6 p-4 bg-slate-950 rounded-xl border border-slate-800 code-font text-cyan-300 text-sm overflow-x-auto"></div>
+                
+                <div id="options-container" class="grid grid-cols-1 gap-3"></div>
+            </div>
+
+            <!-- بطاقة النتيجة الفورية (أخضر/أحمر) -->
+            <div id="feedback-card" class="hidden rounded-2xl p-6 transition-all transform duration-300">
+                <div id="feedback-content" class="flex items-start space-x-4 space-x-reverse">
+                    <div id="feedback-icon" class="p-3 rounded-full flex-shrink-0"></div>
+                    <div class="flex-grow">
+                        <h3 id="feedback-title" class="text-xl font-bold mb-1"></h3>
+                        <p id="feedback-desc" class="text-sm opacity-90 leading-relaxed"></p>
+                        <button onclick="nextQuestion()" class="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold transition-colors">
+                            السؤال التالي ←
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. شاشة تحليل النتائج -->
+        <div id="result-screen" class="hidden glass-card rounded-2xl p-8 text-center">
+            <div class="mb-6">
+                <h2 class="text-3xl font-black mb-1 text-white">تحليل النتائج النهائي 📊</h2>
+                <p class="text-slate-400 text-sm">تقرير أداء الطالب: <span id="final-name" class="text-cyan-400 font-bold"></span></p>
+            </div>
+
+            <!-- النتيجة الكلية -->
+            <div class="bg-slate-900/60 rounded-2xl p-6 mb-6 border border-slate-800 flex justify-around items-center">
+                <div>
+                    <span class="block text-slate-400 text-xs mb-1">الدرجة الكلية</span>
+                    <span id="final-score" class="text-4xl font-black text-cyan-400">0/4</span>
+                </div>
+                <div class="h-12 w-px bg-slate-800"></div>
+                <div>
+                    <span class="block text-slate-400 text-xs mb-1">النسبة المئوية</span>
+                    <span id="final-percentage" class="text-4xl font-black text-cyan-400">0%</span>
+                </div>
+            </div>
+
+            <!-- تفاصيل الإجابات -->
+            <div class="text-right mb-6">
+                <h4 class="font-bold mb-3 text-slate-300">ملخص الإجابات:</h4>
+                <div id="answers-breakdown" class="space-y-3"></div>
+            </div>
+
+            <button onclick="resetGame()" class="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 font-bold rounded-xl text-lg shadow-lg shadow-cyan-500/20 transition-all">
+                إعادة المحاولة 🔄
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // الأسئلة مستخرجة حصرية من الملف المرفق
+        const questionsData = [
+            {
+                question: "ما هي الرموز المستخدمة لطباعة سطر جديد (Newline) وإضافة مسافة (Tab) ضمن دالة print()؟",
+                code: null,
+                options: [
+                    "n\\ للسطر الجديد و t\\ للمسافة",
+                    "\\n للسطر الجديد و \\t للمسافة",
+                    "\\s للسطر الجديد و \\tab للمسافة",
+                    "Enter للسطر الجديد و Space للمسافة"
+                ],
+                correctIndex: 1,
+                explanation: "بحسب الملف: نستخدم الرمز n\\ لطباعة سطر جديد، والرمز t\\ لإضافة مسافة Tab."
+            },
+            {
+                question: "أي من الأسطر التالية يعتبر صياغة صحيحة لطباعة جملة تحتوي على علامات تنصيص مزدوجة كما يلي: Welcome to \"Bahrain\" ؟",
+                code: null,
+                options: [
+                    'print("Welcome to "Bahrain"")',
+                    'print("Welcome to \\"Bahrain\\"")',
+                    'print("Welcome to \'Bahrain\'")',
+                    'print(Welcome to "Bahrain")'
+                ],
+                correctIndex: 1,
+                explanation: "بحسب الملف: لطباعة علامة التنصيص المزدوجة داخل نص محاط بتنصيص مزدوج نستخدم الرمز \\\" قبل العلامة."
+            },
+            {
+                question: "تستخدم دالة input() لإدخال البيانات، وتكون صيغة التوظيف الصحيحة لها هي:",
+                code: null,
+                options: [
+                    'input("Message:") = VarName',
+                    'print(input("Message:"))',
+                    'VarName = input("Message:")',
+                    'VarName = print("Message:")'
+                ],
+                correctIndex: 2,
+                explanation: "بحسب الملف: الصياغة المعتمدة هي VarName=input(\"Message:\") حيث يتم تخزين القيمة المدخلة في اسم المتغير."
+            },
+            {
+                question: "ما هو الناتج المتوقع لتنفيذ الكود التالي بعد إدخال الاسم 'Amal'؟",
+                code: 'stname = input("Enter name: ")\nprint("student name \\t:" + stname)',
+                options: [
+                    'student name \t:Amal (مع مسافة Tab بين العنوان والاسم)',
+                    'Enter name: Amal',
+                    'student name \n:Amal',
+                    'خطأ برمجي (Syntax Error)'
+                ],
+                correctIndex: 0,
+                explanation: "بحسب نشاط 3 و 4 بالملف: تقوم دالة print بتجميع النص وتطبوع الرمز \\t كـ مسافة افقية Tab بين النص والقيمة."
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let studentName = "";
+        let timer = null;
+        let timeLeft = 30;
+        let userAnswers = [];
+
+        function startGame(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('student-name').value.trim();
+            if (!nameInput) return;
+            
+            studentName = nameInput;
+            document.getElementById('display-name').innerText = studentName;
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            
+            currentQuestion = 0;
+            score = 0;
+            userAnswers = [];
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            // إعادة ضبط العداد والبطاقات
+            clearInterval(timer);
+            timeLeft = 30;
+            updateTimerUI();
+            
+            document.getElementById('feedback-card').classList.add('hidden');
+            document.getElementById('question-number').innerText = `${currentQuestion + 1}/${questionsData.length}`;
+            
+            const q = questionsData[currentQuestion];
+            document.getElementById('question-text').innerText = q.question;
+            
+            const codeBlock = document.getElementById('code-block');
+            if (q.code) {
+                codeBlock.innerText = q.code;
+                codeBlock.classList.remove('hidden');
+            } else {
+                codeBlock.classList.add('hidden');
+            }
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-right p-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 transition-all font-medium text-slate-200 code-font-override flex justify-between items-center';
+                btn.onclick = () => selectAnswer(idx);
+                btn.innerHTML = `<span>${opt}</span><span class="w-6 h-6 rounded-full border border-slate-600 flex items-center justify-center text-xs text-slate-400">${idx + 1}</span>`;
+                optionsContainer.appendChild(btn);
+            });
+
+            // بدء المؤقت
+            timer = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    selectAnswer(-1); // الوقت انتهى
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            document.getElementById('timer-text').innerText = timeLeft;
+            const circle = document.getElementById('timer-circle');
+            const offset = 125.6 - (125.6 * timeLeft) / 30;
+            circle.style.strokeDashoffset = offset;
+            
+            if (timeLeft <= 10) {
+                circle.classList.remove('text-cyan-400');
+                circle.classList.add('text-red-500');
+            } else {
+                circle.classList.remove('text-red-500');
+                circle.classList.add('text-cyan-400');
+            }
+        }
+
+        function selectAnswer(index) {
+            clearInterval(timer);
+            const q = questionsData[currentQuestion];
+            const isCorrect = index === q.correctIndex;
+            
+            // قفل كافة الأزرار
+            const buttons = document.getElementById('options-container').querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            if (isCorrect) score++;
+
+            userAnswers.push({
+                question: q.question,
+                isCorrect: isCorrect,
+                selected: index >= 0 ? q.options[index] : "انتهى الوقت",
+                correct: q.options[q.correctIndex]
+            });
+
+            // إظهار البطاقات (أخضر / أحمر)
+            const feedbackCard = document.getElementById('feedback-card');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDesc = document.getElementById('feedback-desc');
+
+            feedbackCard.classList.remove('hidden', 'bg-emerald-900/80', 'border-emerald-500', 'bg-rose-900/80', 'border-rose-500', 'text-emerald-100', 'text-rose-100');
+            
+            if (isCorrect) {
+                feedbackCard.classList.add('bg-emerald-900/80', 'border', 'border-emerald-500', 'text-emerald-100');
+                feedbackIcon.className = 'p-3 rounded-full bg-emerald-500/20 text-emerald-400';
+                feedbackIcon.innerHTML = `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                feedbackTitle.innerText = "إجابة صحيحة! أحسنت 🎉";
+            } else {
+                feedbackCard.classList.add('bg-rose-900/80', 'border', 'border-rose-500', 'text-rose-100');
+                feedbackIcon.className = 'p-3 rounded-full bg-rose-500/20 text-rose-400';
+                feedbackIcon.innerHTML = `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                feedbackTitle.innerText = index === -1 ? "انتهى الوقت المحدد! ⏰" : "إجابة خاطئة! ❌";
+            }
+
+            feedbackDesc.innerText = q.explanation;
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questionsData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            document.getElementById('final-name').innerText = studentName;
+            document.getElementById('final-score').innerText = `${score}/${questionsData.length}`;
+            const percentage = Math.round((score / questionsData.length) * 100);
+            document.getElementById('final-percentage').innerText = `${percentage}%`;
+
+            const breakdown = document.getElementById('answers-breakdown');
+            breakdown.innerHTML = '';
+
+            userAnswers.forEach((ans, i) => {
+                const item = document.createElement('div');
+                item.className = `p-4 rounded-xl border ${ans.isCorrect ? 'bg-emerald-950/40 border-emerald-800/50' : 'bg-rose-950/40 border-rose-800/50'}`;
+                item.innerHTML = `
+                    <div class="font-bold text-sm mb-1 text-slate-200">${i + 1}. ${ans.question}</div>
+                    <div class="text-xs ${ans.isCorrect ? 'text-emerald-400' : 'text-rose-400'}">إجابتك: ${ans.selected}</div>
+                    ${!ans.isCorrect ? `<div class="text-xs text-slate-400 mt-1">الإجابة الصحيحة: ${ans.correct}</div>` : ''}
+                `;
+                breakdown.appendChild(item);
+            });
+        }
+
+        function resetGame() {
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('welcome-screen').classList.remove('hidden');
+            document.getElementById('student-name').value = '';
+        }
+    </script>
+</body>
+</html>
+```eof
+
+### مميزات اللعبة المصممة:
+1. **الاشتراطات المطلوبة:**
+   - تتكون من **4 أسئلة متنوعة** مستخرجة فقط من ملف البايثون المرفق.
+   - تطلب إدخال **اسم الطالب باللغة العربية** قبل بدء التحدي.
+   - تحتوي على مؤقت **30 ثانية** تنازلي لكل سؤال.
+   - تعرض **بطاقة خضراء** عند الإجابة الصحيحة و**بطاقة حمراء** عند الإجابة الخاطئة، مع شرح التوضيح البرمجي من المذكرة.
+   - تقدم **تحليلاً شاملاً للنتائج** في النهاية يوضح النسبة المئوية وتفاصيل الإجابات الصحيحة والخاطئة.
